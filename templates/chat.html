@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Messenger</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    <div class="container-fluid h-100">
+        <div class="row h-100">
+            <!-- Contacts List -->
+            <div class="col-md-3 border-end p-0">
+                <div class="d-flex flex-column h-100">
+                    <div class="p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Сообщения</h5>
+                            <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-danger">Выход</a>
+                        </div>
+                    </div>
+                    <div class="contacts-list flex-grow-1 overflow-auto">
+                        <!-- Contacts will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="col-md-9 p-0">
+                <div class="d-flex flex-column h-100">
+                    <!-- Chat Header -->
+                    <div class="p-3 border-bottom">
+                        <h6 class="mb-0" id="currentChat">Выберите контакт для начала общения</h6>
+                    </div>
+
+                    <!-- Messages Area -->
+                    <div class="flex-grow-1 overflow-auto p-3" id="messagesArea">
+                        <!-- Messages will be populated here -->
+                    </div>
+
+                    <!-- Message Input -->
+                    <div class="p-3 border-top">
+                        <form id="messageForm" class="d-none">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="messageInput" placeholder="Введите сообщение...">
+                                <button type="button" class="btn btn-outline-secondary" id="attachButton">
+                                    <i class="bi bi-paperclip"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="voiceButton">
+                                    <i class="bi bi-mic"></i>
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i>
+                                </button>
+                            </div>
+                            <input type="file" id="fileInput" class="d-none" accept="image/*,video/*,audio/*">
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentReceiver = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        // File handling
+        document.getElementById('attachButton').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            if (this.files.length > 0) {
+                const file = this.files[0];
+                // Handle file upload
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('receiver', currentReceiver);
+                formData.append('media_type', file.type.split('/')[0]);
+
+                fetch('/send_message', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        loadMessages();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+
+        // Voice recording
+        document.getElementById('voiceButton').addEventListener('mousedown', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    audioChunks.push(event.data);
+                });
+
+                mediaRecorder.start();
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+            }
+        });
+
+        document.getElementById('voiceButton').addEventListener('mouseup', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                mediaRecorder.addEventListener('stop', () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'voice-message.wav');
+                    formData.append('receiver', currentReceiver);
+                    formData.append('media_type', 'voice');
+
+                    fetch('/send_message', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            loadMessages();
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+                });
+            }
+        });
+
+        // Message handling
+        document.getElementById('messageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+
+            if (content && currentReceiver) {
+                const formData = new FormData();
+                formData.append('content', content);
+                formData.append('receiver', currentReceiver);
+                formData.append('media_type', 'text');
+
+                try {
+                    const response = await fetch('/send_message', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (data.message) {
+                        messageInput.value = '';
+                        loadMessages();
+                    }
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                }
+            }
+        });
+
+        function loadMessages() {
+            if (!currentReceiver) return;
+
+            fetch(`/get_messages?user_id=${currentReceiver}`)
+                .then(response => response.json())
+                .then(messages => {
+                    const messagesArea = document.getElementById('messagesArea');
+                    messagesArea.innerHTML = '';
+
+                    messages.forEach(message => {
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `message ${message.sender_id === currentReceiver ? 'received' : 'sent'}`;
+
+                        if (message.media_type === 'text') {
+                            messageDiv.textContent = message.content;
+                        } else if (message.media_type === 'image') {
+                            const img = document.createElement('img');
+                            img.src = `/uploads/${message.media_path}`;
+                            img.className = 'message-media';
+                            messageDiv.appendChild(img);
+                        } else if (message.media_type === 'video') {
+                            const video = document.createElement('video');
+                            video.src = `/uploads/${message.media_path}`;
+                            video.controls = true;
+                            video.className = 'message-media';
+                            messageDiv.appendChild(video);
+                        } else if (message.media_type === 'voice') {
+                            const audio = document.createElement('audio');
+                            audio.src = `/uploads/${message.media_path}`;
+                            audio.controls = true;
+                            messageDiv.appendChild(audio);
+                        }
+
+                        messagesArea.appendChild(messageDiv);
+                    });
+
+                    messagesArea.scrollTop = messagesArea.scrollHeight;
+                })
+                .catch(error => console.error('Error loading messages:', error));
+        }
+
+        // Load messages periodically
+        setInterval(loadMessages, 5000);
+    </script>
+</body>
+</html>

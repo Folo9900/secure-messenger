@@ -1,0 +1,139 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #0E1621;
+    color: #FFFFFF;
+    font-family: Arial, sans-serif;
+}
+
+.message {
+    max-width: 70%;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+    clear: both;
+}
+
+.sent {
+    background-color: #2B5278;
+    color: white;
+    margin-left: auto;
+}
+
+.received {
+    background-color: #17212B;
+    color: #fff;
+    margin-right: auto;
+}
+
+.message-media {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 5px;
+}
+
+.contacts-list {
+    height: calc(100vh - 70px);
+    background-color: #17212B;
+    border-right: 1px solid #2B5278;
+}
+
+#messagesArea {
+    height: calc(100vh - 140px);
+    background-color: #0E1621;
+    padding: 20px;
+}
+
+.contact-item {
+    padding: 10px;
+    border-bottom: 1px solid #2B5278;
+    cursor: pointer;
+    color: #fff;
+}
+
+.contact-item:hover {
+    background-color: #242F3D;
+}
+
+.contact-item.active {
+    background-color: #2B5278;
+}
+
+audio {
+    max-width: 100%;
+    background-color: #182533;
+    border-radius: 20px;
+}
+
+/* Добавляем стили для верхней панели */
+.border-bottom {
+    border-bottom: 1px solid #2B5278 !important;
+    background-color: #17212B;
+}
+
+.border-end {
+    border-right: 1px solid #2B5278 !important;
+}
+
+/* Стили для поля ввода сообщения */
+.input-group {
+    background-color: #17212B;
+    padding: 10px;
+    border-top: 1px solid #2B5278;
+}
+
+.form-control {
+    background-color: #242F3D;
+    border: none;
+    color: #FFFFFF;
+}
+
+.form-control:focus {
+    background-color: #242F3D;
+    border-color: #2B5278;
+    color: #FFFFFF;
+    box-shadow: none;
+}
+
+.btn-outline-secondary {
+    color: #6C7883 !important;
+    border-color: transparent !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #1C2936 !important;
+    color: #fff !important;
+}
+
+.btn-primary {
+    background-color: #2B5278;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #3A6898;
+}
+
+/* Стили для форм входа и регистрации */
+.card {
+    background-color: #17212B !important;
+    border: none !important;
+}
+
+.card-body {
+    color: #fff;
+}
+
+.form-label {
+    color: #6C7883;
+}
+
+a {
+    color: #2B5278 !important;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #3A6898 !important;
+}
